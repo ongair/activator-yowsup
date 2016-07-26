@@ -36,5 +36,17 @@ def token():
     return jsonify(status=402, error="Number is required")
 
 
+# Get an environment variable
+def get_env(key, raiseError=True, default_value=None):
+  value = os.environ.get(key)
+  if value is None:
+    if raiseError:
+      raise Exception("Error. Environment Variables not loaded, kindly load them " % key)
+    else:
+      return default_value
+  else:
+    return value.encode('utf-8')
+
 if __name__ == "__main__":
-  app.run(debug=False)
+  debug = get_env('debug', False, False)
+  app.run(debug=debug)
