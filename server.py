@@ -2,12 +2,16 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 
+import boto3
+
 from yowsup.common.tools import StorageTools, WATools
 from yowsup.registration.existsrequest import WAExistsRequest
 from yowsup.env import S40YowsupEnv, AndroidYowsupEnv
 
 import random, hashlib, os
 from urllib import quote
+from collections import defaultdict
+
 CURRENT_ENV = AndroidYowsupEnv()
 
 app = Flask(__name__)
@@ -34,6 +38,32 @@ def token():
       return jsonify(status=402, error="Country code is required")
   else:
     return jsonify(status=402, error="Number is required")
+
+@app.route("/instances", methods=['GET'])
+def instances():
+  ec2 = boto3.resource('ec2')
+
+  purpose_filter = { 'Name': 'tag:Purpose', 'Values': ['container'] }
+  running_instances = ec2.instances.filter(Filters=[ purpose_filter ])
+
+  details = defaultdict()
+
+  servers = {
+    'count': 0,
+    'instances': []
+  }
+
+  for instance in running_instances:
+    details = {
+      'instance_id': instance.id,
+      'state': instance.state['Name'],
+      'public_ip': instance.public_ip_address
+    }
+
+    servers['instances'].append(details)
+    servers['count'] += 1
+
+  return jsonify(status=200, servers=servers)
 
 
 # Get an environment variable
